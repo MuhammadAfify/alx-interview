@@ -1,39 +1,43 @@
 #!/usr/bin/python3
-"""
-Log parsing
-"""
-
 import sys
+import re
+from collections import defaultdict
 
-if __name__ == '__main__':
+def parse_line(line):
+    # Define the regex pattern for the expected log format
+    pattern = r'^(\d+\.\d+\.\d+\.\d+) - \[.*\] "GET /projects/260 HTTP/1\.1" (\d{3}) (\d+)$'
+    match = re.match(pattern, line)
+    if match:
+        return match.group(2), int(match.group(3))
+    return None, None
 
-    filesize, count = 0, 0
-    codes = ["200", "301", "400", "401", "403", "404", "405", "500"]
-    stats = {k: 0 for k in codes}
+def print_metrics(file_size_total, status_counts):
+    print(f"File size: {file_size_total}")
+    for status_code in sorted(status_counts):
+        print(f"{status_code}: {status_counts[status_code]}")
 
-    def print_stats(stats: dict, file_size: int) -> None:
-        print("File size: {:d}".format(filesize))
-        for k, v in sorted(stats.items()):
-            if v:
-                print("{}: {}".format(k, v))
+def main():
+    file_size_total = 0
+    status_counts = defaultdict(int)
+    line_count = 0
 
     try:
         for line in sys.stdin:
-            count += 1
-            data = line.split()
-            try:
-                status_code = data[-2]
-                if status_code in stats:
-                    stats[status_code] += 1
-            except BaseException:
-                pass
-            try:
-                filesize += int(data[-1])
-            except BaseException:
-                pass
-            if count % 10 == 0:
-                print_stats(stats, filesize)
-        print_stats(stats, filesize)
+            status_code, file_size = parse_line(line)
+            if status_code and file_size is not None:
+                file_size_total += file_size
+                status_counts[status_code] += 1
+
+            line_count += 1
+
+            # Print metrics after every 10 lines
+            if line_count % 10 == 0:
+                print_metrics(file_size_total, status_counts)
+
     except KeyboardInterrupt:
-        print_stats(stats, filesize)
-        raise
+        # Print metrics on keyboard interruption
+        print_metrics(file_size_total, status_counts)
+
+if __name__ == "__main__":
+    main()
+
