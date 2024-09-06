@@ -15,7 +15,7 @@ const req = (arr, i) => {
 };
 
 request(
-  `https://swapi-api.hbtn.io/api/films/${process.argv[2]}`,
+  `https://swapi-api.alx-tools.com/api/films/${process.argv[2]}`,
   (err, response, body) => {
     if (err) {
       throw err;
